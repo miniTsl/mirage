@@ -19,25 +19,8 @@
 #include <cuda_runtime.h>
 
 #ifdef USE_NVSHMEM
-#if defined(MIRAGE_GRACE_BLACKWELL)
-// Blackwell (SM100a): include only host API + types.
-// Device-side allreduce is self-contained in tasks/blackwell/allreduce.cuh
-// to avoid rdc=true register inflation (166 vs 255 regs).
-//
-// Define nvshmemi_device_state_d BEFORE any NVSHMEM headers so that any
-// transitively-included device code (proxy_device.cuh etc.) can resolve it.
-// In standard NVSHMEM this comes from libnvshmem_device.a, but we skip that
-// library to avoid rdc=true.
-#include "device_host/nvshmem_types.h"
-#ifdef NVSHMEM_NO_DEVICE_LIB
-__managed__ nvshmemi_device_host_state_t nvshmemi_device_state_d;
-#endif
-#include <nvshmem_host.h>
-#else
-// Hopper/Ampere: use standard NVSHMEM includes (rdc=true is fine on SM90).
 #include <nvshmem.h>
 #include <nvshmemx.h>
-#endif
 #endif
 
 namespace mirage {
@@ -198,7 +181,13 @@ enum TaskType {
   TASK_MTP_BUILD_EMBED_INPUT = 294,
   // MLA prefill TP=8: unabsorbed, TMA K/V, seq_len<=4096.
   TASK_MLA_PREFILL_TP8_SM100 = 295,
-  TASK_SM100_TASK_END = 298, // SM100 end placeholder, not a real task
+  // DFlash non-causal block attention (correctness-first), SM100.
+  TASK_DFLASH_ATTENTION_SM100 = 296,
+  // DFlash per-head RMSNorm + RoPE, SM100.
+  TASK_DFLASH_NORM_ROPE_SM100 = 297,
+  // DFlash standalone paged KV-cache store (L4 materialize write), SM100.
+  TASK_DFLASH_KV_STORE_SM100 = 298,
+  TASK_SM100_TASK_END = 299, // SM100 end placeholder, not a real task
   TASK_SCHD_TASKS = 200,
   TASK_SCHD_EVENTS = 201,
   TASK_GET_EVENT = 202,
